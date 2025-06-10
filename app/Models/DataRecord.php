@@ -11,6 +11,11 @@ class DataRecord extends Model
 
     protected $fillable = [
         'user_id',
+        'is_edit_request',
+        'parent_id',
+        'status',
+        'admin_id',
+        'admin_notes',
         'integer_field_1',
         'integer_field_2',
         'integer_field_3',
@@ -32,10 +37,60 @@ class DataRecord extends Model
     }
 
     /**
-     * Edit requests relationship
+     * Admin relationship
+     */
+    public function admin()
+    {
+        return $this->belongsTo(User::class, 'admin_id');
+    }
+
+    /**
+     * Parent data record relationship (for edit requests)
+     */
+    public function parent()
+    {
+        return $this->belongsTo(DataRecord::class, 'parent_id');
+    }
+
+    /**
+     * Child edit requests relationship
      */
     public function editRequests()
     {
-        return $this->hasMany(EditRequest::class);
+        return $this->hasMany(DataRecord::class, 'parent_id')->where('is_edit_request', true);
     }
+
+    /**
+     * Edit history relationship
+     */
+    public function editHistory()
+    {
+        return $this->hasMany(DataEditHistory::class);
+    }
+
+    /**
+     * Scope for actual data records (not edit requests)
+     */
+    public function scopeActualRecords($query)
+    {
+        return $query->where('is_edit_request', false);
+    }
+
+    /**
+     * Scope for edit requests
+     */
+    public function scopeEditRequests($query)
+    {
+        return $query->where('is_edit_request', true);
+    }
+
+    /**
+     * Scope for pending edit requests
+     */
+    public function scopePendingEditRequests($query)
+    {
+        return $query->where('is_edit_request', true)->where('status', 'pending');
+    }
+
+
 }

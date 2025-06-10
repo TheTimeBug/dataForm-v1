@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\AdminController;
+use App\Http\Controllers\LibraryController;
 
 /*
 |--------------------------------------------------------------------------
@@ -41,6 +42,34 @@ Route::middleware('auth:api')->prefix('admin')->group(function () {
     Route::post('/users', [AdminController::class, 'addUser']);
     Route::get('/users', [AdminController::class, 'getUsers']);
     Route::get('/submissions', [AdminController::class, 'getSubmissions']);
-    Route::post('/send-for-edit', [AdminController::class, 'sendForEdit']);
+    Route::post('/send-edit-request', [AdminController::class, 'sendEditRequest']);
     Route::get('/edit-requests', [AdminController::class, 'getEditRequests']);
+    Route::get('/edit-history', [AdminController::class, 'getEditHistory']);
+    
+    // Library routes
+    Route::prefix('library')->group(function () {
+        // Division routes
+        Route::get('/divisions', [LibraryController::class, 'getDivisions']);
+        Route::post('/divisions', [LibraryController::class, 'storeDivision']);
+        Route::put('/divisions/{id}', [LibraryController::class, 'updateDivision']);
+        Route::delete('/divisions/{id}', [LibraryController::class, 'deleteDivision']);
+        
+        // District routes
+        Route::get('/districts/{divisionId?}', [LibraryController::class, 'getDistricts']);
+        Route::post('/districts', [LibraryController::class, 'storeDistrict']);
+        Route::put('/districts/{id}', [LibraryController::class, 'updateDistrict']);
+        Route::delete('/districts/{id}', [LibraryController::class, 'deleteDistrict']);
+        
+        // Upazila routes
+        Route::get('/upazilas/{districtId?}', [LibraryController::class, 'getUpazilas']);
+        Route::post('/upazilas', [LibraryController::class, 'storeUpazila']);
+        Route::put('/upazilas/{id}', [LibraryController::class, 'updateUpazila']);
+        Route::delete('/upazilas/{id}', [LibraryController::class, 'deleteUpazila']);
+        
+        // Mouza routes
+        Route::get('/mouzas/{upazilaId?}', [LibraryController::class, 'getMouzas']);
+        Route::post('/mouzas', [LibraryController::class, 'storeMouza']);
+        Route::put('/mouzas/{id}', [LibraryController::class, 'updateMouza']);
+        Route::delete('/mouzas/{id}', [LibraryController::class, 'deleteMouza']);
+    });
 }); 
