@@ -49,9 +49,9 @@ class AdminController extends Controller
     }
 
     /**
-     * Get all data submissions
+     * Get all data submissions with pagination, search and filtering
      */
-    public function getSubmissions()
+    public function getSubmissions(Request $request)
     {
         $admin = JWTAuth::user();
         
@@ -59,7 +59,57 @@ class AdminController extends Controller
             return response()->json(['error' => 'Access denied'], 403);
         }
 
-        $submissions = DataRecord::with('user')->get();
+        $perPage = $request->get('per_page', 10);
+        $search = $request->get('search', '');
+        $dateFrom = $request->get('date_from', '');
+        $dateTo = $request->get('date_to', '');
+        $user = $request->get('user', '');
+
+        $query = DataRecord::where('is_edit_request', false)
+            ->with('user');
+
+        // Add search functionality
+        if (!empty($search)) {
+            $query->where(function($q) use ($search) {
+                $q->where('id', 'like', "%{$search}%")
+                  ->orWhere('integer_field_1', 'like', "%{$search}%")
+                  ->orWhere('integer_field_2', 'like', "%{$search}%")
+                  ->orWhere('integer_field_3', 'like', "%{$search}%")
+                  ->orWhere('integer_field_4', 'like', "%{$search}%")
+                  ->orWhere('selector_field_1', 'like', "%{$search}%")
+                  ->orWhere('selector_field_2', 'like', "%{$search}%")
+                  ->orWhere('selector_field_3', 'like', "%{$search}%")
+                  ->orWhere('selector_field_4', 'like', "%{$search}%")
+                  ->orWhere('comment_field_1', 'like', "%{$search}%")
+                  ->orWhere('comment_field_2', 'like', "%{$search}%")
+                  ->orWhereHas('user', function($userQuery) use ($search) {
+                      $userQuery->where('name', 'like', "%{$search}%");
+                  });
+            });
+        }
+
+        // Add date range filter
+        if (!empty($dateFrom)) {
+            $query->whereDate('created_at', '>=', $dateFrom);
+        }
+        
+        if (!empty($dateTo)) {
+            $query->whereDate('created_at', '<=', $dateTo);
+        }
+
+        // Add user filter
+        if (!empty($user)) {
+            $query->where('user_id', $user);
+        }
+
+        // For simple requests, return non-paginated data
+        if ($request->get('simple', false) || !$request->has('per_page')) {
+            $submissions = $query->orderBy('created_at', 'desc')->get();
+            return response()->json($submissions);
+        }
+
+        // Order by latest first and paginate
+        $submissions = $query->orderBy('created_at', 'desc')->paginate($perPage);
 
         return response()->json($submissions);
     }
@@ -254,5 +304,225 @@ class AdminController extends Controller
     public function editHistory()
     {
         return view('admin.edit-requests.history');
+    }
+
+    /**
+     * Check if admins already exist for the specified area
+     */
+    public function checkExistingAdmins(Request $request)
+    {
+        $admin = JWTAuth::user();
+        
+        if ($admin->role !== 'admin') {
+            return response()->json(['error' => 'Access denied'], 403);
+        }
+
+        $request->validate([
+            'admin_type' => 'required|in:national,divisional,district,upazila',
+            'division_id' => 'nullable|integer',
+            'district_id' => 'nullable|integer', 
+            'upazila_id' => 'nullable|integer',
+        ]);
+
+        $query = User::where('role', 'admin')
+            ->where('admin_type', $request->admin_type);
+
+        // Add area-specific filters based on admin type
+        if ($request->admin_type === 'divisional' && $request->division_id) {
+            $query->where('division_id', $request->division_id);
+        } elseif ($request->admin_type === 'district' && $request->district_id) {
+            $query->where('district_id', $request->district_id);
+        } elseif ($request->admin_type === 'upazila' && $request->upazila_id) {
+            $query->where('upazila_id', $request->upazila_id);
+        }
+
+        $existingAdmins = $query->get();
+
+        return response()->json([
+            'exists' => $existingAdmins->count() > 0,
+            'admins' => $existingAdmins
+        ]);
+    }
+
+    /**
+     * Create a new admin user
+     */
+    public function createAdminUser(Request $request)
+    {
+        $admin = JWTAuth::user();
+        
+        if ($admin->role !== 'admin') {
+            return response()->json(['error' => 'Access denied'], 403);
+        }
+
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|string|email|max:255|unique:users',
+            'mobile' => 'required|string|max:20',
+            'password' => 'required|string|min:6',
+            'admin_type' => 'required|in:national,divisional,district,upazila',
+            'division_id' => 'nullable|integer',
+            'district_id' => 'nullable|integer',
+            'upazila_id' => 'nullable|integer',
+            'replace_existing' => 'boolean'
+        ]);
+
+        // If replace_existing is true, remove existing admins for this area
+        if ($request->get('replace_existing', false)) {
+            $deleteQuery = User::where('role', 'admin')
+                ->where('admin_type', $request->admin_type);
+
+            if ($request->admin_type === 'divisional' && $request->division_id) {
+                $deleteQuery->where('division_id', $request->division_id);
+            } elseif ($request->admin_type === 'district' && $request->district_id) {
+                $deleteQuery->where('district_id', $request->district_id);
+            } elseif ($request->admin_type === 'upazila' && $request->upazila_id) {
+                $deleteQuery->where('upazila_id', $request->upazila_id);
+            }
+
+            $deleteQuery->delete();
+        }
+
+        // Create the new admin user
+        $userData = [
+            'name' => $request->name,
+            'email' => $request->email,
+            'mobile' => $request->mobile,
+            'password' => Hash::make($request->password),
+            'role' => 'admin',
+            'admin_type' => $request->admin_type,
+        ];
+
+        if ($request->admin_type !== 'national') {
+            if ($request->division_id) {
+                $userData['division_id'] = $request->division_id;
+            }
+            if ($request->district_id) {
+                $userData['district_id'] = $request->district_id;  
+            }
+            if ($request->upazila_id) {
+                $userData['upazila_id'] = $request->upazila_id;
+            }
+        }
+
+        $newAdmin = User::create($userData);
+
+        return response()->json([
+            'message' => 'Admin user created successfully',
+            'admin' => $newAdmin
+        ], 201);
+    }
+
+    /**
+     * Get admin users with pagination and filtering
+     */
+    public function getAdminUsers(Request $request)
+    {
+        $admin = JWTAuth::user();
+        
+        if ($admin->role !== 'admin') {
+            return response()->json(['error' => 'Access denied'], 403);
+        }
+
+        $perPage = $request->get('per_page', 10);
+        $search = $request->get('search', '');
+        $adminType = $request->get('admin_type', '');
+
+        $query = User::where('role', 'admin')
+            ->leftJoin('divisions', 'users.division_id', '=', 'divisions.id')
+            ->leftJoin('districts', 'users.district_id', '=', 'districts.id')
+            ->leftJoin('upazilas', 'users.upazila_id', '=', 'upazilas.id')
+            ->select(
+                'users.*',
+                'divisions.name as division_name',
+                'districts.name as district_name', 
+                'upazilas.name as upazila_name'
+            );
+
+        // Add search functionality
+        if (!empty($search)) {
+            $query->where(function($q) use ($search) {
+                $q->where('users.name', 'like', "%{$search}%")
+                  ->orWhere('users.email', 'like', "%{$search}%")
+                  ->orWhere('users.mobile', 'like', "%{$search}%")
+                  ->orWhere('divisions.name', 'like', "%{$search}%")
+                  ->orWhere('districts.name', 'like', "%{$search}%")
+                  ->orWhere('upazilas.name', 'like', "%{$search}%");
+            });
+        }
+
+        // Add admin type filter
+        if (!empty($adminType)) {
+            $query->where('users.admin_type', $adminType);
+        }
+
+        // Order by latest first and paginate
+        $admins = $query->orderBy('users.created_at', 'desc')->paginate($perPage);
+
+        return response()->json($admins);
+    }
+
+    /**
+     * Update an admin user
+     */
+    public function updateAdminUser(Request $request, $id)
+    {
+        $admin = JWTAuth::user();
+        
+        if ($admin->role !== 'admin') {
+            return response()->json(['error' => 'Access denied'], 403);
+        }
+
+        $adminUser = User::where('role', 'admin')->findOrFail($id);
+
+        $request->validate([
+            'name' => 'sometimes|required|string|max:255',
+            'email' => 'sometimes|required|string|email|max:255|unique:users,email,' . $id,
+            'mobile' => 'sometimes|required|string|max:20',
+            'password' => 'sometimes|required|string|min:6',
+            'admin_type' => 'sometimes|required|in:national,divisional,district,upazila',
+            'status' => 'sometimes|required|in:active,inactive,suspended',
+            'division_id' => 'nullable|integer',
+            'district_id' => 'nullable|integer',
+            'upazila_id' => 'nullable|integer',
+        ]);
+
+        $updateData = $request->only(['name', 'email', 'mobile', 'admin_type', 'status', 'division_id', 'district_id', 'upazila_id']);
+
+        if ($request->has('password')) {
+            $updateData['password'] = Hash::make($request->password);
+        }
+
+        $adminUser->update($updateData);
+
+        return response()->json([
+            'message' => 'Admin user updated successfully',
+            'admin' => $adminUser->fresh()
+        ]);
+    }
+
+    /**
+     * Delete an admin user
+     */
+    public function deleteAdminUser($id)
+    {
+        $admin = JWTAuth::user();
+        
+        if ($admin->role !== 'admin') {
+            return response()->json(['error' => 'Access denied'], 403);
+        }
+
+        $adminUser = User::where('role', 'admin')->findOrFail($id);
+        
+        // Prevent self-deletion
+        if ($adminUser->id === $admin->id) {
+            return response()->json(['error' => 'Cannot delete your own admin account'], 403);
+        }
+
+        $adminUser->delete();
+
+        return response()->json([
+            'message' => 'Admin user deleted successfully'
+        ]);
     }
 }

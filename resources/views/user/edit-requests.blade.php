@@ -1,12 +1,12 @@
 @extends('user.layout')
 
-@section('title', 'Edit Requests')
+@section('title', 'Pending Edit Requests')
 
 @section('content')
     <!-- Edit Requests -->
     <div class="bg-white rounded-xl shadow-lg p-6">
         <div class="flex justify-between items-center mb-6">
-            <h2 class="text-xl font-semibold text-gray-800">Edit Requests</h2>
+            <h2 class="text-xl font-semibold text-gray-800">Pending Edit Requests</h2>
             <button onclick="loadEditRequests()" 
                 class="bg-green-100 text-green-800 px-4 py-2 rounded-lg hover:bg-green-200 transition duration-200 flex items-center">
                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -19,7 +19,7 @@
         <!-- Search and Filter Controls -->
         <div class="flex flex-col sm:flex-row gap-4 mb-6">
             <div class="flex-1">
-                <input type="text" id="searchInput" placeholder="Search edit requests..." 
+                <input type="text" id="searchInput" placeholder="Search pending edit requests..." 
                     class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent">
             </div>
             <div class="flex gap-3">
@@ -64,8 +64,8 @@
             <svg class="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
             </svg>
-            <h3 class="text-lg font-medium text-gray-900 mb-2">No Edit Requests Found</h3>
-            <p class="text-gray-500">No edit requests match your search criteria.</p>
+            <h3 class="text-lg font-medium text-gray-900 mb-2">No Pending Edit Requests Found</h3>
+            <p class="text-gray-500">No pending edit requests match your search criteria.</p>
         </div>
 
         <!-- Pagination -->
@@ -161,50 +161,45 @@
         emptyState.classList.add('hidden');
         
                  tbody.innerHTML = editRequests.map(request => {
-             const statusColors = {
-                 'pending': 'bg-yellow-100 text-yellow-800',
-                 'completed': 'bg-green-100 text-green-800'
-             };
-             
              return `
                  <!-- Main Data Row -->
                  <tr class="hover:bg-gray-50">
                      <td class="px-3 py-3 text-xs font-medium text-gray-900">#${request.id}</td>
                      <td class="px-3 py-3">
-                         <span class="px-2 py-1 text-xs font-medium rounded-full ${statusColors[request.status] || statusColors.pending}">
-                             ${request.status.charAt(0).toUpperCase() + request.status.slice(1)}
+                         <span class="px-2 py-1 text-xs font-medium rounded-full bg-yellow-100 text-yellow-800">
+                             Pending
                          </span>
                      </td>
-                     <td class="px-3 py-3 text-xs text-gray-600">${request.data_record.id}</td>
+                     <td class="px-3 py-3 text-xs text-gray-600">${request.parent_id || request.id}</td>
                      <td class="px-3 py-3">
-                         <span class="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded">${request.data_record.integer_field_1}</span>
-                     </td>
-                     <td class="px-3 py-3">
-                         <span class="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded">${request.data_record.integer_field_2}</span>
+                         <span class="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded">${request.integer_field_1}</span>
                      </td>
                      <td class="px-3 py-3">
-                         <span class="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded">${request.data_record.integer_field_3}</span>
+                         <span class="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded">${request.integer_field_2}</span>
                      </td>
                      <td class="px-3 py-3">
-                         <span class="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded">${request.data_record.integer_field_4}</span>
+                         <span class="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded">${request.integer_field_3}</span>
                      </td>
                      <td class="px-3 py-3">
-                         <span class="px-2 py-1 text-xs bg-green-100 text-green-800 rounded">${request.data_record.selector_field_1}</span>
+                         <span class="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded">${request.integer_field_4}</span>
                      </td>
                      <td class="px-3 py-3">
-                         <span class="px-2 py-1 text-xs bg-green-100 text-green-800 rounded">${request.data_record.selector_field_2}</span>
+                         <span class="px-2 py-1 text-xs bg-green-100 text-green-800 rounded">${request.selector_field_1}</span>
                      </td>
                      <td class="px-3 py-3">
-                         <span class="px-2 py-1 text-xs bg-green-100 text-green-800 rounded">${request.data_record.selector_field_3}</span>
+                         <span class="px-2 py-1 text-xs bg-green-100 text-green-800 rounded">${request.selector_field_2}</span>
                      </td>
                      <td class="px-3 py-3">
-                         <span class="px-2 py-1 text-xs bg-green-100 text-green-800 rounded">${request.data_record.selector_field_4}</span>
+                         <span class="px-2 py-1 text-xs bg-green-100 text-green-800 rounded">${request.selector_field_3}</span>
                      </td>
-                     <td class="px-3 py-3 text-xs text-gray-600 max-w-32 truncate" title="${request.data_record.comment_field_1}">
-                         ${request.data_record.comment_field_1}
+                     <td class="px-3 py-3">
+                         <span class="px-2 py-1 text-xs bg-green-100 text-green-800 rounded">${request.selector_field_4}</span>
                      </td>
-                     <td class="px-3 py-3 text-xs text-gray-600 max-w-32 truncate" title="${request.data_record.comment_field_2}">
-                         ${request.data_record.comment_field_2}
+                     <td class="px-3 py-3 text-xs text-gray-600 max-w-32 truncate" title="${request.comment_field_1}">
+                         ${request.comment_field_1}
+                     </td>
+                     <td class="px-3 py-3 text-xs text-gray-600 max-w-32 truncate" title="${request.comment_field_2}">
+                         ${request.comment_field_2}
                      </td>
                      <td class="px-3 py-3 text-xs text-gray-500">${new Date(request.created_at).toLocaleDateString()}</td>
                  </tr>
@@ -223,7 +218,7 @@
                                      <div class="text-xs text-gray-500 italic mb-2">No admin notes</div>
                                  `}
                                  <p class="text-xs text-gray-600">
-                                     <strong>Requested by:</strong> ${request.admin.name} on ${new Date(request.created_at).toLocaleDateString('en-US', {
+                                     <strong>Requested by:</strong> ${request.admin ? request.admin.name : 'Admin'} on ${new Date(request.created_at).toLocaleDateString('en-US', {
                                          year: 'numeric',
                                          month: 'short',
                                          day: 'numeric',
@@ -233,22 +228,13 @@
                                  </p>
                              </div>
                              <div class="flex-shrink-0">
-                                 ${request.status === 'pending' ? `
-                                     <button onclick="openEditModal(${request.id}, ${JSON.stringify(request.data_record).replace(/"/g, '&quot;')})" 
-                                         class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition duration-200 flex items-center text-sm">
-                                         <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                                         </svg>
-                                         Edit
-                                     </button>
-                                 ` : `
-                                     <div class="flex items-center text-green-600">
-                                         <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                                         </svg>
-                                         <span class="text-sm font-medium">Completed</span>
-                                     </div>
-                                 `}
+                                 <button onclick="openEditModal(${request.id}, ${JSON.stringify(request).replace(/"/g, '&quot;')})" 
+                                     class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition duration-200 flex items-center text-sm">
+                                     <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                     </svg>
+                                     Edit
+                                 </button>
                              </div>
                          </div>
                      </td>

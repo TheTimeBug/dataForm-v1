@@ -224,7 +224,7 @@
         // Load data records
         async function loadDataRecords() {
             try {
-                const response = await axios.get('/api/user/data-records');
+                const response = await axios.get('/api/user/data-records?simple=true');
                 const records = response.data;
                 
                 const tbody = document.getElementById('dataRecordsTable');
@@ -249,13 +249,14 @@
                 
             } catch (error) {
                 console.error('Failed to load data records:', error);
+                showMessage('Failed to load data records', 'error');
             }
         }
 
         // Load edit requests
         async function loadEditRequests() {
             try {
-                const response = await axios.get('/api/user/edit-requests');
+                const response = await axios.get('/api/user/edit-requests?simple=true');
                 const editRequests = response.data;
                 
                 const container = document.getElementById('editRequestsContainer');
@@ -270,22 +271,22 @@
                         <div class="flex justify-between items-start mb-2">
                             <div>
                                 <h4 class="font-medium text-gray-800">Edit Request #${request.id}</h4>
-                                <p class="text-sm text-gray-600">Status: <span class="px-2 py-1 rounded-full text-xs ${request.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'}">${request.status}</span></p>
+                                <p class="text-sm text-gray-600">Status: <span class="px-2 py-1 rounded-full text-xs bg-yellow-100 text-yellow-800">Pending</span></p>
+                                ${request.parent_id ? `<p class="text-sm text-gray-500">Original Data ID: ${request.parent_id}</p>` : ''}
                             </div>
-                            ${request.status === 'pending' ? `
-                                <button onclick="openEditModal(${request.id}, ${JSON.stringify(request.data_record).replace(/"/g, '&quot;')})" 
-                                    class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition duration-200">
-                                    Edit
-                                </button>
-                            ` : ''}
+                            <button onclick="openEditModal(${request.id}, ${JSON.stringify(request).replace(/"/g, '&quot;')})" 
+                                class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition duration-200">
+                                Edit
+                            </button>
                         </div>
                         ${request.admin_notes ? `<p class="text-sm text-gray-600 mb-2"><strong>Admin Notes:</strong> ${request.admin_notes}</p>` : ''}
-                        <p class="text-xs text-gray-500">Requested by: ${request.admin.name}</p>
+                        <p class="text-xs text-gray-500">Requested by: ${request.admin ? request.admin.name : 'Admin'}</p>
                     </div>
                 `).join('');
                 
             } catch (error) {
                 console.error('Failed to load edit requests:', error);
+                showMessage('Failed to load edit requests', 'error');
             }
         }
 

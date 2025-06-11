@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\DataRecord;
-use App\Models\EditRequest;
 use Tymon\JWTAuth\Facades\JWTAuth;
 use Illuminate\Support\Facades\Hash;
 
@@ -64,7 +63,8 @@ class UserController extends Controller
         $perPage = $request->get('per_page', 10);
         $search = $request->get('search', '');
         
-        $query = DataRecord::where('user_id', $user->id);
+        $query = DataRecord::where('user_id', $user->id)
+            ->where('is_edit_request', false);
         
         // Add search functionality
         if (!empty($search)) {
@@ -82,6 +82,12 @@ class UserController extends Controller
             });
         }
         
+        // For simple requests, return non-paginated data
+        if ($request->get('simple', false) || !$request->has('per_page')) {
+            $dataRecords = $query->orderBy('created_at', 'desc')->get();
+            return response()->json($dataRecords);
+        }
+        
         // Order by latest first and paginate
         $dataRecords = $query->orderBy('created_at', 'desc')->paginate($perPage);
 
@@ -89,7 +95,7 @@ class UserController extends Controller
     }
 
     /**
-     * Get edit requests for the user with pagination and search
+     * Get pending edit requests for the user with pagination and search
      */
     public function getEditRequests(Request $request)
     {
@@ -97,31 +103,36 @@ class UserController extends Controller
         $perPage = $request->get('per_page', 10);
         $search = $request->get('search', '');
         
-        $query = EditRequest::where('user_id', $user->id)
-            ->with(['dataRecord', 'admin']);
+        $query = DataRecord::where('user_id', $user->id)
+            ->where('is_edit_request', true)
+            ->where('status', 'pending')  // Only show pending requests
+            ->with(['admin', 'parent']);
         
         // Add search functionality
         if (!empty($search)) {
             $query->where(function($q) use ($search) {
                 $q->where('id', 'like', "%{$search}%")
-                  ->orWhere('status', 'like', "%{$search}%")
                   ->orWhere('admin_notes', 'like', "%{$search}%")
+                  ->orWhere('integer_field_1', 'like', "%{$search}%")
+                  ->orWhere('integer_field_2', 'like', "%{$search}%")
+                  ->orWhere('integer_field_3', 'like', "%{$search}%")
+                  ->orWhere('integer_field_4', 'like', "%{$search}%")
+                  ->orWhere('selector_field_1', 'like', "%{$search}%")
+                  ->orWhere('selector_field_2', 'like', "%{$search}%")
+                  ->orWhere('selector_field_3', 'like', "%{$search}%")
+                  ->orWhere('selector_field_4', 'like', "%{$search}%")
+                  ->orWhere('comment_field_1', 'like', "%{$search}%")
+                  ->orWhere('comment_field_2', 'like', "%{$search}%")
                   ->orWhereHas('admin', function($adminQuery) use ($search) {
                       $adminQuery->where('name', 'like', "%{$search}%");
-                  })
-                  ->orWhereHas('dataRecord', function($dataQuery) use ($search) {
-                      $dataQuery->where('integer_field_1', 'like', "%{$search}%")
-                               ->orWhere('integer_field_2', 'like', "%{$search}%")
-                               ->orWhere('integer_field_3', 'like', "%{$search}%")
-                               ->orWhere('integer_field_4', 'like', "%{$search}%")
-                               ->orWhere('selector_field_1', 'like', "%{$search}%")
-                               ->orWhere('selector_field_2', 'like', "%{$search}%")
-                               ->orWhere('selector_field_3', 'like', "%{$search}%")
-                               ->orWhere('selector_field_4', 'like', "%{$search}%")
-                               ->orWhere('comment_field_1', 'like', "%{$search}%")
-                               ->orWhere('comment_field_2', 'like', "%{$search}%");
                   });
             });
+        }
+        
+        // For simple requests, return non-paginated data
+        if ($request->get('simple', false) || !$request->has('per_page')) {
+            $editRequests = $query->orderBy('created_at', 'asc')->get();
+            return response()->json($editRequests);
         }
         
         // Order by oldest first and paginate
@@ -131,16 +142,75 @@ class UserController extends Controller
     }
 
     /**
+     * Get edit history for the user with pagination and search
+     */
+    public function getEditHistory(Request $request)
+    {
+        $user = JWTAuth::user();
+        $perPage = $request->get('per_page', 10);
+        $search = $request->get('search', '');
+        $dateFrom = $request->get('date_from', '');
+        $dateTo = $request->get('date_to', '');
+        
+        $query = DataRecord::where('user_id', $user->id)
+            ->where('is_edit_request', true)
+            ->where('status', 'completed')  // Only show completed requests
+            ->with(['admin', 'parent']);
+        
+        // Add search functionality
+        if (!empty($search)) {
+            $query->where(function($q) use ($search) {
+                $q->where('id', 'like', "%{$search}%")
+                  ->orWhere('admin_notes', 'like', "%{$search}%")
+                  ->orWhere('integer_field_1', 'like', "%{$search}%")
+                  ->orWhere('integer_field_2', 'like', "%{$search}%")
+                  ->orWhere('integer_field_3', 'like', "%{$search}%")
+                  ->orWhere('integer_field_4', 'like', "%{$search}%")
+                  ->orWhere('selector_field_1', 'like', "%{$search}%")
+                  ->orWhere('selector_field_2', 'like', "%{$search}%")
+                  ->orWhere('selector_field_3', 'like', "%{$search}%")
+                  ->orWhere('selector_field_4', 'like', "%{$search}%")
+                  ->orWhere('comment_field_1', 'like', "%{$search}%")
+                  ->orWhere('comment_field_2', 'like', "%{$search}%")
+                  ->orWhereHas('admin', function($adminQuery) use ($search) {
+                      $adminQuery->where('name', 'like', "%{$search}%");
+                  });
+            });
+        }
+        
+        // Add date range filter
+        if (!empty($dateFrom)) {
+            $query->whereDate('created_at', '>=', $dateFrom);
+        }
+        
+        if (!empty($dateTo)) {
+            $query->whereDate('created_at', '<=', $dateTo);
+        }
+        
+        // For simple requests, return non-paginated data
+        if ($request->get('simple', false) || !$request->has('per_page')) {
+            $editHistory = $query->orderBy('updated_at', 'desc')->get();
+            return response()->json($editHistory);
+        }
+        
+        // Order by latest first and paginate
+        $editHistory = $query->orderBy('updated_at', 'desc')->paginate($perPage);
+
+        return response()->json($editHistory);
+    }
+
+    /**
      * Update data record from edit request
      */
     public function updateDataRecord(Request $request, $editRequestId)
     {
         $user = JWTAuth::user();
         
-        $editRequest = EditRequest::where('id', $editRequestId)
+        $editRequest = DataRecord::where('id', $editRequestId)
             ->where('user_id', $user->id)
+            ->where('is_edit_request', true)
             ->where('status', 'pending')
-            ->with('dataRecord')
+            ->with('parent')
             ->first();
 
         if (!$editRequest) {
@@ -160,8 +230,24 @@ class UserController extends Controller
             'comment_field_2' => 'required|string',
         ]);
 
-        // Update the data record
-        $editRequest->dataRecord->update([
+        // Update the original data record
+        if ($editRequest->parent) {
+            $editRequest->parent->update([
+                'integer_field_1' => $request->integer_field_1,
+                'integer_field_2' => $request->integer_field_2,
+                'integer_field_3' => $request->integer_field_3,
+                'integer_field_4' => $request->integer_field_4,
+                'selector_field_1' => $request->selector_field_1,
+                'selector_field_2' => $request->selector_field_2,
+                'selector_field_3' => $request->selector_field_3,
+                'selector_field_4' => $request->selector_field_4,
+                'comment_field_1' => $request->comment_field_1,
+                'comment_field_2' => $request->comment_field_2,
+            ]);
+        }
+
+        // Update the edit request record with new data and mark as completed
+        $editRequest->update([
             'integer_field_1' => $request->integer_field_1,
             'integer_field_2' => $request->integer_field_2,
             'integer_field_3' => $request->integer_field_3,
@@ -172,14 +258,12 @@ class UserController extends Controller
             'selector_field_4' => $request->selector_field_4,
             'comment_field_1' => $request->comment_field_1,
             'comment_field_2' => $request->comment_field_2,
+            'status' => 'completed'
         ]);
-
-        // Mark edit request as completed
-        $editRequest->update(['status' => 'completed']);
 
         return response()->json([
             'message' => 'Data record updated successfully',
-            'data' => $editRequest->dataRecord
+            'data' => $editRequest->parent ?: $editRequest
         ]);
     }
 

@@ -60,6 +60,16 @@
                         </svg>
                         <span class="nav-text ml-3">Edit Requests</span>
                     </a>
+                    <a href="{{ route('user.edit-history') }}" 
+                       class="nav-item flex items-center px-3 py-2 rounded-lg font-medium text-sm transition-colors duration-200
+                              {{ request()->routeIs('user.edit-history') 
+                                 ? 'bg-green-100 text-green-700 border-l-4 border-green-500' 
+                                 : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900' }}">
+                        <svg class="w-5 h-5 nav-icon flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <span class="nav-text ml-3">Edit History</span>
+                    </a>
                     <a href="{{ route('user.profile') }}" 
                        class="nav-item flex items-center px-3 py-2 rounded-lg font-medium text-sm transition-colors duration-200
                               {{ request()->routeIs('user.profile') 

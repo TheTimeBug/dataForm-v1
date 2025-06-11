@@ -52,16 +52,49 @@
                             </svg>
                             <span class="nav-text ml-3">Dashboard</span>
                         </a>
-                        <a href="{{ route('admin.users') }}" 
-                           class="nav-item flex items-center px-3 py-2 rounded-lg font-medium text-sm transition-colors duration-200
-                                  {{ request()->routeIs('admin.users') 
-                                     ? 'bg-blue-100 text-blue-700 border-l-4 border-blue-500' 
-                                     : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900' }}">
-                            <svg class="w-5 h-5 nav-icon flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z"></path>
-                            </svg>
-                            <span class="nav-text ml-3">Users</span>
-                        </a>
+                        <!-- Users Menu with Submenu -->
+                        <div class="users-menu">
+                            <button onclick="toggleUsersSubmenu()" 
+                                    class="nav-item w-full flex items-center justify-between px-3 py-2 rounded-lg font-medium text-sm transition-colors duration-200
+                                           {{ request()->routeIs('admin.users.*') 
+                                              ? 'bg-blue-100 text-blue-700 border-l-4 border-blue-500' 
+                                              : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900' }}">
+                                <div class="flex items-center">
+                                    <svg class="w-5 h-5 nav-icon flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z"></path>
+                                    </svg>
+                                    <span class="nav-text ml-3">Users</span>
+                                </div>
+                                <svg id="usersChevron" class="w-4 h-4 nav-icon transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                                </svg>
+                            </button>
+                            
+                            <!-- Users Submenu -->
+                            <div id="usersSubmenu" class="users-submenu hidden ml-6 mt-1 space-y-1">
+                                <a href="{{ route('admin.users.admins') }}" 
+                                   class="submenu-item flex items-center px-3 py-2 rounded-lg font-medium text-sm transition-colors duration-200
+                                          {{ request()->routeIs('admin.users.admins') 
+                                             ? 'bg-blue-50 text-blue-600' 
+                                             : 'text-gray-500 hover:bg-gray-50 hover:text-gray-700' }}">
+                                    <svg class="w-4 h-4 submenu-icon flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+                                    </svg>
+                                    <span class="submenu-text ml-2">Admins</span>
+                                </a>
+                                
+                                <a href="{{ route('admin.users.users') }}" 
+                                   class="submenu-item flex items-center px-3 py-2 rounded-lg font-medium text-sm transition-colors duration-200
+                                          {{ request()->routeIs('admin.users.users') 
+                                             ? 'bg-blue-50 text-blue-600' 
+                                             : 'text-gray-500 hover:bg-gray-50 hover:text-gray-700' }}">
+                                    <svg class="w-4 h-4 submenu-icon flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                                    </svg>
+                                    <span class="submenu-text ml-2">Users</span>
+                                </a>
+                            </div>
+                        </div>
                         <a href="{{ route('admin.submissions') }}" 
                            class="nav-item flex items-center px-3 py-2 rounded-lg font-medium text-sm transition-colors duration-200
                                   {{ request()->routeIs('admin.submissions') 
@@ -83,7 +116,7 @@
                                     <svg class="w-5 h-5 nav-icon flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
                                     </svg>
-                                    <span class="nav-text ml-3">Edit Requests</span>
+                                    <span class="nav-text ml-3">Rollback</span>
                                 </div>
                                 <svg id="editRequestsChevron" class="w-4 h-4 nav-icon transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
@@ -100,7 +133,7 @@
                                     <svg class="w-4 h-4 submenu-icon flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                                     </svg>
-                                    <span class="submenu-text ml-2">Pending Edit</span>
+                                    <span class="submenu-text ml-2">Pending</span>
                                 </a>
                                 
                                 <a href="{{ route('admin.edit-requests.history') }}" 
@@ -111,7 +144,7 @@
                                     <svg class="w-4 h-4 submenu-icon flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                                     </svg>
-                                    <span class="submenu-text ml-2">Edit History</span>
+                                    <span class="submenu-text ml-2">History</span>
                                 </a>
                             </div>
                         </div>
@@ -330,11 +363,15 @@
             const libraryChevron = document.getElementById('libraryChevron');
             const editRequestsSubmenu = document.getElementById('editRequestsSubmenu');
             const editRequestsChevron = document.getElementById('editRequestsChevron');
+            const usersSubmenu = document.getElementById('usersSubmenu');
+            const usersChevron = document.getElementById('usersChevron');
             
             if (librarySubmenu) librarySubmenu.classList.add('hidden');
             if (libraryChevron) libraryChevron.classList.add('hidden');
             if (editRequestsSubmenu) editRequestsSubmenu.classList.add('hidden');
             if (editRequestsChevron) editRequestsChevron.classList.add('hidden');
+            if (usersSubmenu) usersSubmenu.classList.add('hidden');
+            if (usersChevron) usersChevron.classList.add('hidden');
             
             // Adjust navigation items for collapsed state
             const navItems = document.querySelectorAll('.nav-item, .logout-btn');
@@ -357,129 +394,124 @@
             // Show chevrons
             const libraryChevron = document.getElementById('libraryChevron');
             const editRequestsChevron = document.getElementById('editRequestsChevron');
+            const usersChevron = document.getElementById('usersChevron');
+            
             if (libraryChevron) libraryChevron.classList.remove('hidden');
             if (editRequestsChevron) editRequestsChevron.classList.remove('hidden');
+            if (usersChevron) usersChevron.classList.remove('hidden');
             
-            // Adjust navigation items for expanded state
+            // Restore navigation items alignment
             const navItems = document.querySelectorAll('.nav-item, .logout-btn');
             navItems.forEach(item => {
                 item.classList.remove('justify-center');
                 item.classList.add('justify-start');
             });
+            
+            // Auto-expand submenus if on those pages
+            if (window.location.pathname.includes('/admin/library/')) {
+                expandLibrarySubmenu();
+            }
+            if (window.location.pathname.includes('/admin/edit-requests/')) {
+                expandEditRequestsSubmenu();
+            }
+            if (window.location.pathname.includes('/admin/users/')) {
+                expandUsersSubmenu();
+            }
         }
 
-        function resetSidebarItems(collapsed) {
-            const navTexts = document.querySelectorAll('.nav-text, .logout-text, .submenu-text');
-            const navItems = document.querySelectorAll('.nav-item, .logout-btn');
-            const librarySubmenu = document.getElementById('librarySubmenu');
-            const libraryChevron = document.getElementById('libraryChevron');
-            const editRequestsSubmenu = document.getElementById('editRequestsSubmenu');
-            const editRequestsChevron = document.getElementById('editRequestsChevron');
-            
+        function resetSidebarItems(collapsed = false) {
             if (collapsed) {
-                navTexts.forEach(text => {
-                    text.classList.add('hidden', 'opacity-0', 'scale-95');
-                });
-                navItems.forEach(item => {
-                    item.classList.add('justify-center');
-                    item.classList.remove('justify-start');
-                });
-                if (librarySubmenu) librarySubmenu.classList.add('hidden');
-                if (libraryChevron) libraryChevron.classList.add('hidden');
-                if (editRequestsSubmenu) editRequestsSubmenu.classList.add('hidden');
-                if (editRequestsChevron) editRequestsChevron.classList.add('hidden');
+                collapseSidebarItems();
             } else {
-                navTexts.forEach(text => {
-                    text.classList.remove('hidden', 'opacity-0', 'scale-95');
-                });
-                navItems.forEach(item => {
-                    item.classList.remove('justify-center');
-                    item.classList.add('justify-start');
-                });
-                if (libraryChevron) libraryChevron.classList.remove('hidden');
-                if (editRequestsChevron) editRequestsChevron.classList.remove('hidden');
+                expandSidebarItems();
             }
         }
 
-        // Handle overlay click to close sidebar on mobile
-        document.getElementById('sidebarOverlay').addEventListener('click', function() {
-            if (isMobile) {
-                toggleSidebar();
-            }
-        });
-
-        // Edit Requests submenu toggle
-        function toggleEditRequestsSubmenu() {
-            if (isMobile || sidebarCollapsed) {
-                return; // Don't toggle submenu when sidebar is collapsed or on mobile
-            }
-            
-            const submenu = document.getElementById('editRequestsSubmenu');
-            const chevron = document.getElementById('editRequestsChevron');
-            
-            if (submenu.classList.contains('hidden')) {
-                submenu.classList.remove('hidden');
-                chevron.style.transform = 'rotate(90deg)';
-            } else {
-                submenu.classList.add('hidden');
-                chevron.style.transform = 'rotate(0deg)';
-            }
-        }
-
-        // Library submenu toggle
+        // Toggle library submenu
         function toggleLibrarySubmenu() {
-            if (isMobile || sidebarCollapsed) {
-                return; // Don't toggle submenu when sidebar is collapsed or on mobile
-            }
-            
             const submenu = document.getElementById('librarySubmenu');
             const chevron = document.getElementById('libraryChevron');
             
             if (submenu.classList.contains('hidden')) {
-                submenu.classList.remove('hidden');
-                chevron.style.transform = 'rotate(90deg)';
+                expandLibrarySubmenu();
             } else {
                 submenu.classList.add('hidden');
-                chevron.style.transform = 'rotate(0deg)';
+                chevron.classList.remove('rotate-90');
             }
         }
 
-        // Initialize on page load
+        function expandLibrarySubmenu() {
+            if (!sidebarCollapsed) {
+                const submenu = document.getElementById('librarySubmenu');
+                const chevron = document.getElementById('libraryChevron');
+                submenu.classList.remove('hidden');
+                chevron.classList.add('rotate-90');
+            }
+        }
+
+        // Toggle edit requests submenu
+        function toggleEditRequestsSubmenu() {
+            const submenu = document.getElementById('editRequestsSubmenu');
+            const chevron = document.getElementById('editRequestsChevron');
+            
+            if (submenu.classList.contains('hidden')) {
+                expandEditRequestsSubmenu();
+            } else {
+                submenu.classList.add('hidden');
+                chevron.classList.remove('rotate-90');
+            }
+        }
+
+        function expandEditRequestsSubmenu() {
+            if (!sidebarCollapsed) {
+                const submenu = document.getElementById('editRequestsSubmenu');
+                const chevron = document.getElementById('editRequestsChevron');
+                submenu.classList.remove('hidden');
+                chevron.classList.add('rotate-90');
+            }
+        }
+
+        // Toggle users submenu
+        function toggleUsersSubmenu() {
+            const submenu = document.getElementById('usersSubmenu');
+            const chevron = document.getElementById('usersChevron');
+            
+            if (submenu.classList.contains('hidden')) {
+                expandUsersSubmenu();
+            } else {
+                submenu.classList.add('hidden');
+                chevron.classList.remove('rotate-90');
+            }
+        }
+
+        function expandUsersSubmenu() {
+            if (!sidebarCollapsed) {
+                const submenu = document.getElementById('usersSubmenu');
+                const chevron = document.getElementById('usersChevron');
+                submenu.classList.remove('hidden');
+                chevron.classList.add('rotate-90');
+            }
+        }
+
+        // Auto-expand appropriate submenu on page load
         document.addEventListener('DOMContentLoaded', function() {
             checkScreenSize();
             
-            // Auto-expand library submenu if on a library page
+            // Auto-expand submenus based on current page
             if (window.location.pathname.includes('/admin/library/')) {
-                setTimeout(() => {
-                    if (!isMobile && !sidebarCollapsed) {
-                        const submenu = document.getElementById('librarySubmenu');
-                        const chevron = document.getElementById('libraryChevron');
-                        if (submenu && chevron) {
-                            submenu.classList.remove('hidden');
-                            chevron.style.transform = 'rotate(90deg)';
-                        }
-                    }
-                }, 100);
+                expandLibrarySubmenu();
+            }
+            if (window.location.pathname.includes('/admin/edit-requests/')) {
+                expandEditRequestsSubmenu();
+            }
+            if (window.location.pathname.includes('/admin/users/')) {
+                expandUsersSubmenu();
             }
             
-            // Auto-expand edit requests submenu if on an edit requests page
-            if (window.location.pathname.includes('/admin/edit-requests')) {
-                setTimeout(() => {
-                    if (!isMobile && !sidebarCollapsed) {
-                        const submenu = document.getElementById('editRequestsSubmenu');
-                        const chevron = document.getElementById('editRequestsChevron');
-                        if (submenu && chevron) {
-                            submenu.classList.remove('hidden');
-                            chevron.style.transform = 'rotate(90deg)';
-                        }
-                    }
-                }, 100);
-            }
-        });
-
-        // Handle window resize
-        window.addEventListener('resize', function() {
-            checkScreenSize();
+            // Listen for window resize
+            window.addEventListener('resize', function() {
+                setTimeout(checkScreenSize, 100);
+            });
         });
     </script>
 </body>

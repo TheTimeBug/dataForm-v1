@@ -7,6 +7,7 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\LibraryController;
 
+
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -33,6 +34,7 @@ Route::middleware('auth:api')->prefix('user')->group(function () {
     Route::post('/data-records', [UserController::class, 'storeDataRecord']);
     Route::get('/data-records', [UserController::class, 'getDataRecords']);
     Route::get('/edit-requests', [UserController::class, 'getEditRequests']);
+    Route::get('/edit-history', [UserController::class, 'getEditHistory']);
     Route::put('/edit-requests/{editRequestId}', [UserController::class, 'updateDataRecord']);
     Route::post('/change-password', [UserController::class, 'changePassword']);
 });
@@ -45,6 +47,13 @@ Route::middleware('auth:api')->prefix('admin')->group(function () {
     Route::post('/send-edit-request', [AdminController::class, 'sendEditRequest']);
     Route::get('/edit-requests', [AdminController::class, 'getEditRequests']);
     Route::get('/edit-history', [AdminController::class, 'getEditHistory']);
+    
+    // Admin user management
+    Route::post('/check-existing-admins', [AdminController::class, 'checkExistingAdmins']);
+    Route::post('/create-admin-user', [AdminController::class, 'createAdminUser']);
+    Route::get('/admin-users', [AdminController::class, 'getAdminUsers']);
+    Route::put('/admin-users/{id}', [AdminController::class, 'updateAdminUser']);
+    Route::delete('/admin-users/{id}', [AdminController::class, 'deleteAdminUser']);
     
     // Library routes
     Route::prefix('library')->group(function () {

@@ -21,8 +21,15 @@ class User extends Authenticatable implements JWTSubject
     protected $fillable = [
         'name',
         'email',
+        'mobile',
         'password',
         'role',
+        'admin_type',
+        'division_id',
+        'district_id',
+        'upazila_id',
+        'status',
+        'status_reason',
     ];
 
     /**
@@ -46,6 +53,7 @@ class User extends Authenticatable implements JWTSubject
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'password_updated_at' => 'datetime',
+            'status_changed_at' => 'datetime',
         ];
     }
 
@@ -70,7 +78,15 @@ class User extends Authenticatable implements JWTSubject
     }
 
     /**
-     * Check if user is admin
+     * User who changed the status
+     */
+    public function statusChangedBy()
+    {
+        return $this->belongsTo(User::class, 'status_changed_by');
+    }
+
+    /**
+     * Check if user is admin (simple role check)
      */
     public function isAdmin()
     {
@@ -86,6 +102,19 @@ class User extends Authenticatable implements JWTSubject
     }
 
     /**
+     * Update user status
+     */
+    public function updateStatus($status, $reason = null, $changedBy = null)
+    {
+        $this->update([
+            'status' => $status,
+            'status_reason' => $reason,
+            'status_changed_at' => now(),
+            'status_changed_by' => $changedBy,
+        ]);
+    }
+
+    /**
      * Data records relationship
      */
     public function dataRecords()
@@ -98,7 +127,7 @@ class User extends Authenticatable implements JWTSubject
      */
     public function editRequests()
     {
-        return $this->hasMany(EditRequest::class);
+        return $this->hasMany(DataRecord::class)->where('is_edit_request', true);
     }
 
     /**
@@ -106,6 +135,30 @@ class User extends Authenticatable implements JWTSubject
      */
     public function adminEditRequests()
     {
-        return $this->hasMany(EditRequest::class, 'admin_id');
+        return $this->hasMany(DataRecord::class, 'admin_id')->where('is_edit_request', true);
+    }
+
+    /**
+     * Division relationship
+     */
+    public function division()
+    {
+        return $this->belongsTo(Division::class);
+    }
+
+    /**
+     * District relationship
+     */
+    public function district()
+    {
+        return $this->belongsTo(District::class);
+    }
+
+    /**
+     * Upazila relationship
+     */
+    public function upazila()
+    {
+        return $this->belongsTo(Upazila::class);
     }
 }

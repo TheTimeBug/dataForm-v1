@@ -12,15 +12,19 @@ Route::get('/admin/login', function () {
 })->name('admin.login');
 
 Route::get('/admin/dashboard', function () {
-    return view('admin.dashboard');
+    return view('admin.overview');
 })->name('admin.dashboard');
 
-Route::get('/admin/users', function () {
-    return view('admin.dashboard');
-})->name('admin.users');
+Route::get('/admin/users/admins', function () {
+    return view('admin.users.admins');
+})->name('admin.users.admins');
+
+Route::get('/admin/users/users', function () {
+    return view('admin.users.users');
+})->name('admin.users.users');
 
 Route::get('/admin/submissions', function () {
-    return view('admin.dashboard');
+    return view('admin.submissions');
 })->name('admin.submissions');
 
 Route::get('/admin/edit-requests/pending', [App\Http\Controllers\AdminController::class, 'pendingEditRequests'])->name('admin.edit-requests.pending');
@@ -48,6 +52,10 @@ Route::get('/user/data-submission', function () {
 Route::get('/user/edit-requests', function () {
     return view('user.edit-requests');
 })->name('user.edit-requests');
+
+Route::get('/user/edit-history', function () {
+    return view('user.edit-history');
+})->name('user.edit-history');
 
 Route::get('/user/profile', function () {
     return view('user.profile');
