@@ -6,6 +6,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\LibraryController;
+use App\Http\Controllers\AuthorizationController;
 
 
 /*
@@ -27,6 +28,12 @@ Route::middleware('auth:api')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::post('/refresh', [AuthController::class, 'refresh']);
     Route::get('/me', [AuthController::class, 'me']);
+    
+    // Legacy authorization check routes (deprecated - using cached data instead)
+    // Route::get('/auth/check-admin', [AuthorizationController::class, 'checkAdminAccess']);
+    // Route::get('/auth/check-admin-level/{level}', [AuthorizationController::class, 'checkAdminLevel']);
+    // Route::get('/auth/check-superadmin', [AuthorizationController::class, 'checkSuperAdminAccess']);
+    // Route::post('/auth/check-area', [AuthorizationController::class, 'checkAreaAccess']);
 });
 
 // User routes
@@ -39,36 +46,49 @@ Route::middleware('auth:api')->prefix('user')->group(function () {
     Route::post('/change-password', [UserController::class, 'changePassword']);
 });
 
-// Admin routes
-Route::middleware('auth:api')->prefix('admin')->group(function () {
+// Admin routes with proper authorization
+Route::middleware(['auth:api', 'admin'])->prefix('admin')->group(function () {
+    // Basic admin info routes
     Route::get('/me', [AdminController::class, 'me']);
     Route::get('/allowed-admin-types', [AdminController::class, 'getAllowedAdminTypes']);
+    Route::post('/change-password', [AdminController::class, 'changePassword']);
+    
+    // User management routes
     Route::post('/users', [AdminController::class, 'addUser']);
     Route::get('/users', [AdminController::class, 'getUsers']);
+    
+    // Data submission management
     Route::get('/submissions', [AdminController::class, 'getSubmissions']);
     Route::post('/send-edit-request', [AdminController::class, 'sendEditRequest']);
     Route::get('/edit-requests', [AdminController::class, 'getEditRequests']);
     Route::get('/edit-history', [AdminController::class, 'getEditHistory']);
     
-    // Admin user management
-    Route::post('/check-existing-admins', [AdminController::class, 'checkExistingAdmins']);
-    Route::post('/create-admin-user', [AdminController::class, 'createAdminUser']);
-    Route::get('/admin-users', [AdminController::class, 'getAdminUsers']);
-    Route::put('/admin-users/{id}', [AdminController::class, 'updateAdminUser']);
-    Route::delete('/admin-users/{id}', [AdminController::class, 'deleteAdminUser']);
+    // Admin user management - requires at least district level
+    Route::middleware('admin_level:district')->group(function () {
+        Route::post('/check-existing-admins', [AdminController::class, 'checkExistingAdmins']);
+        Route::post('/create-admin-user', [AdminController::class, 'createAdminUser']);
+        Route::get('/admin-users', [AdminController::class, 'getAdminUsers']);
+        Route::put('/admin-users/{id}', [AdminController::class, 'updateAdminUser']);
+        Route::delete('/admin-users/{id}', [AdminController::class, 'deleteAdminUser']);
+    });
     
-    // Admin password change
-    Route::post('/change-password', [AdminController::class, 'changePassword']);
+    // Read-only library routes for admin management - requires at least national level
+    Route::middleware('admin_level:national')->prefix('reference')->group(function () {
+        Route::get('/divisions', [LibraryController::class, 'getDivisions']);
+        Route::get('/districts/{divisionId?}', [LibraryController::class, 'getDistricts']);
+        Route::get('/upazilas/{districtId?}', [LibraryController::class, 'getUpazilas']);
+        Route::get('/mouzas/{upazilaId?}', [LibraryController::class, 'getMouzas']);
+    });
     
-    // Library routes
-    Route::prefix('library')->group(function () {
+    // Library routes - Only for Superadmin
+    Route::middleware('super_admin')->prefix('library')->group(function () {
         // Division routes
         Route::get('/divisions', [LibraryController::class, 'getDivisions']);
         Route::post('/divisions', [LibraryController::class, 'storeDivision']);
         Route::put('/divisions/{id}', [LibraryController::class, 'updateDivision']);
         Route::delete('/divisions/{id}', [LibraryController::class, 'deleteDivision']);
         
-        // District routes
+        // District routes  
         Route::get('/districts/{divisionId?}', [LibraryController::class, 'getDistricts']);
         Route::post('/districts', [LibraryController::class, 'storeDistrict']);
         Route::put('/districts/{id}', [LibraryController::class, 'updateDistrict']);

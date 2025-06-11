@@ -6,39 +6,50 @@ Route::get('/', function () {
     return redirect()->route('admin.login');
 });
 
+// Unauthorized access page
+Route::get('/unauthorized', function () {
+    return view('unauthorized');
+})->name('unauthorized');
+
 // Admin routes
 Route::get('/admin/login', function () {
     return view('admin.login');
 })->name('admin.login');
 
-Route::get('/admin/dashboard', function () {
-    return view('admin.overview');
-})->name('admin.dashboard');
+// Protected admin routes
+Route::middleware(['auth_web'])->prefix('admin')->name('admin.')->group(function () {
+    Route::get('/dashboard', function () {
+        return view('admin.overview');
+    })->name('dashboard');
 
-Route::get('/admin/users/admins', function () {
-    return view('admin.users.admins');
-})->name('admin.users.admins');
+    Route::get('/users/admins', function () {
+        return view('admin.users.admins');
+    })->name('users.admins');
 
-Route::get('/admin/users/users', function () {
-    return view('admin.users.users');
-})->name('admin.users.users');
+    Route::get('/users/users', function () {
+        return view('admin.users.users');
+    })->name('users.users');
 
-Route::get('/admin/submissions', function () {
-    return view('admin.submissions');
-})->name('admin.submissions');
+    Route::get('/submissions', function () {
+        return view('admin.submissions');
+    })->name('submissions');
 
-Route::get('/admin/edit-requests/pending', [App\Http\Controllers\AdminController::class, 'pendingEditRequests'])->name('admin.edit-requests.pending');
-Route::get('/admin/edit-requests/history', [App\Http\Controllers\AdminController::class, 'editHistory'])->name('admin.edit-requests.history');
+    Route::get('/edit-requests/pending', [App\Http\Controllers\AdminController::class, 'pendingEditRequests'])->name('edit-requests.pending');
+    Route::get('/edit-requests/history', [App\Http\Controllers\AdminController::class, 'editHistory'])->name('edit-requests.history');
 
-Route::get('/admin/library', [App\Http\Controllers\LibraryController::class, 'index'])->name('admin.library');
-Route::get('/admin/library/divisions', [App\Http\Controllers\LibraryController::class, 'divisions'])->name('admin.library.divisions');
-Route::get('/admin/library/districts', [App\Http\Controllers\LibraryController::class, 'districts'])->name('admin.library.districts');
-Route::get('/admin/library/upazilas', [App\Http\Controllers\LibraryController::class, 'upazilas'])->name('admin.library.upazilas');
-Route::get('/admin/library/mouzas', [App\Http\Controllers\LibraryController::class, 'mouzas'])->name('admin.library.mouzas');
-
-Route::get('/admin/profile', function () {
-    return view('admin.profile');
-})->name('admin.profile');
+    Route::get('/profile', function () {
+        return view('admin.profile');
+    })->name('profile');
+    
+    // Library routes - Only for Superadmin
+    Route::prefix('library')->name('library.')->group(function () {
+        Route::get('/', [App\Http\Controllers\LibraryController::class, 'index'])->name('index');
+        Route::get('/divisions', [App\Http\Controllers\LibraryController::class, 'divisions'])->name('divisions');
+        Route::get('/districts', [App\Http\Controllers\LibraryController::class, 'districts'])->name('districts');
+        Route::get('/upazilas', [App\Http\Controllers\LibraryController::class, 'upazilas'])->name('upazilas');
+        Route::get('/mouzas', [App\Http\Controllers\LibraryController::class, 'mouzas'])->name('mouzas');
+    });
+});
 
 // User routes
 Route::get('/user/login', function () {

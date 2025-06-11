@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Cache;
 use App\Models\User;
 use App\Models\DataRecord;
 use App\Models\DataEditHistory;
@@ -18,7 +20,7 @@ class AdminController extends Controller
     }
 
     /**
-     * Get authenticated admin user
+     * Get authenticated admin user (optimized)
      */
     public function me()
     {
@@ -28,20 +30,26 @@ class AdminController extends Controller
             return response()->json(['error' => 'Access denied'], 403);
         }
 
-        // Load area relationships for admin
-        $admin->load(['division', 'district', 'upazila']);
-        
-        // Add area names to the response
-        $adminData = $admin->toArray();
-        if ($admin->division) {
-            $adminData['division_name'] = $admin->division->name;
-        }
-        if ($admin->district) {
-            $adminData['district_name'] = $admin->district->name;
-        }
-        if ($admin->upazila) {
-            $adminData['upazila_name'] = $admin->upazila->name;
-        }
+        // Use caching for better performance
+        $cacheKey = "admin_me_data_{$admin->id}";
+        $adminData = Cache::remember($cacheKey, 300, function () use ($admin) {
+            // Load area relationships for admin
+            $admin->load(['division', 'district', 'upazila']);
+            
+            // Add area names to the response
+            $adminData = $admin->toArray();
+            if ($admin->division) {
+                $adminData['division_name'] = $admin->division->name;
+            }
+            if ($admin->district) {
+                $adminData['district_name'] = $admin->district->name;
+            }
+            if ($admin->upazila) {
+                $adminData['upazila_name'] = $admin->upazila->name;
+            }
+            
+            return $adminData;
+        });
 
         return response()->json($adminData);
     }
@@ -437,6 +445,7 @@ class AdminController extends Controller
             'password' => Hash::make($request->password),
             'role' => 'admin', // Always admin role
             'admin_type' => $request->admin_type,
+            'created_by' => $admin->id, // Track who created this admin
         ];
 
         if (!in_array($request->admin_type, ['national', 'superadmin'])) {
@@ -470,45 +479,67 @@ class AdminController extends Controller
             return response()->json(['error' => 'Access denied'], 403);
         }
 
-        $perPage = $request->get('per_page', 10);
-        $search = $request->get('search', '');
-        $adminType = $request->get('admin_type', '');
+        try {
+            $perPage = $request->get('per_page', 10);
+            $search = $request->get('search', '');
+            $adminType = $request->get('admin_type', '');
 
-        $query = User::where('role', 'admin')
-            ->leftJoin('divisions', 'users.division_id', '=', 'divisions.id')
-            ->leftJoin('districts', 'users.district_id', '=', 'districts.id')
-            ->leftJoin('upazilas', 'users.upazila_id', '=', 'upazilas.id')
-            ->select(
-                'users.*',
-                'divisions.name as division_name',
-                'districts.name as district_name', 
-                'upazilas.name as upazila_name'
-            );
+            // Simplified query first to debug
+            $query = User::where('role', 'admin')
+                ->with(['division', 'district', 'upazila', 'createdBy']);
 
-        // Apply hierarchical filtering based on current admin's level
-        $this->applyHierarchicalFilter($query, $admin);
+            // Apply hierarchical filtering based on current admin's level
+            $this->applyHierarchicalFilter($query, $admin);
 
-        // Add search functionality
-        if (!empty($search)) {
-            $query->where(function($q) use ($search) {
-                $q->where('users.name', 'like', "%{$search}%")
-                  ->orWhere('users.email', 'like', "%{$search}%")
-                  ->orWhere('users.mobile', 'like', "%{$search}%")
-                  ->orWhere('divisions.name', 'like', "%{$search}%")
-                  ->orWhere('districts.name', 'like', "%{$search}%")
-                  ->orWhere('upazilas.name', 'like', "%{$search}%");
+            // Add search functionality
+            if (!empty($search)) {
+                $query->where(function($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%")
+                      ->orWhere('email', 'like', "%{$search}%")
+                      ->orWhere('mobile', 'like', "%{$search}%");
+                });
+            }
+
+            // Add admin type filter
+            if (!empty($adminType)) {
+                $query->where('admin_type', $adminType);
+            }
+
+            // Order by latest first and paginate
+            $admins = $query->orderBy('created_at', 'desc')->paginate($perPage);
+
+            // Transform the data to include area names
+            $admins->getCollection()->transform(function ($user) {
+                return [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'mobile' => $user->mobile,
+                    'admin_type' => $user->admin_type,
+                    'status' => $user->status,
+                    'division_id' => $user->division_id,
+                    'district_id' => $user->district_id,
+                    'upazila_id' => $user->upazila_id,
+                    'division_name' => $user->division ? $user->division->name : null,
+                    'district_name' => $user->district ? $user->district->name : null,
+                    'upazila_name' => $user->upazila ? $user->upazila->name : null,
+                    'created_by_name' => $user->createdBy ? $user->createdBy->name : 'System',
+                    'created_at' => $user->created_at,
+                    'updated_at' => $user->updated_at,
+                ];
             });
+
+            return response()->json($admins);
+
+        } catch (\Exception $e) {
+            \Log::error('Error in getAdminUsers: ' . $e->getMessage());
+            \Log::error('Stack trace: ' . $e->getTraceAsString());
+            
+            return response()->json([
+                'error' => 'Failed to fetch admin users',
+                'message' => $e->getMessage()
+            ], 500);
         }
-
-        // Add admin type filter
-        if (!empty($adminType)) {
-            $query->where('users.admin_type', $adminType);
-        }
-
-        // Order by latest first and paginate
-        $admins = $query->orderBy('users.created_at', 'desc')->paginate($perPage);
-
-        return response()->json($admins);
     }
 
     /**

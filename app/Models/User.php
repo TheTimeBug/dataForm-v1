@@ -254,4 +254,12 @@ class User extends Authenticatable implements JWTSubject
     {
         return $this->belongsTo(Upazila::class);
     }
+
+    /**
+     * User who created this admin
+     */
+    public function createdBy()
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
 }

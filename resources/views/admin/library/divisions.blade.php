@@ -12,7 +12,7 @@
                 <p class="text-gray-600">Manage administrative divisions</p>
             </div>
             <nav class="text-sm text-gray-500">
-                <a href="{{ route('admin.library') }}" class="hover:text-gray-700">Library</a>
+                <a href="{{ route('admin.library.index') }}" class="hover:text-gray-700">Library</a>
                 <span class="mx-2">›</span>
                 <span class="text-gray-800">Divisions</span>
             </nav>
@@ -134,6 +134,9 @@
 </div>
 
 <script>
+    // Authorization handled at Laravel level - no JavaScript checks needed
+    console.log('Divisions page loaded with Laravel-level authorization');
+
     let currentEditId = null;
     let currentPage = 1;
     let searchTerm = '';

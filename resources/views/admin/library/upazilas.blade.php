@@ -12,7 +12,7 @@
                 <p class="text-gray-600">Manage administrative upazilas</p>
             </div>
             <nav class="text-sm text-gray-500">
-                <a href="{{ route('admin.library') }}" class="hover:text-gray-700">Library</a>
+                <a href="{{ route('admin.library.index') }}" class="hover:text-gray-700">Library</a>
                 <span class="mx-2">›</span>
                 <span class="text-gray-800">Upazilas</span>
             </nav>
@@ -117,6 +117,9 @@
 </div>
 
 <script>
+    // Authorization handled at Laravel level - no JavaScript checks needed
+    console.log('Upazilas page loaded with Laravel-level authorization');
+
     let divisionsData = [];
     let districtsData = [];
     let currentPage = 1;

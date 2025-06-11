@@ -6,6 +6,9 @@
     <title>@yield('title', 'Admin Dashboard') - DataForm</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    
+    <!-- Include Authorization Component -->
+    @include('components.auth-check')
 </head>
 <body class="bg-gray-50 h-screen overflow-hidden">
     <div class="h-full flex flex-col">
@@ -148,8 +151,8 @@
                                 </a>
                             </div>
                         </div>
-                        <!-- Library Menu with Submenu -->
-                        <div class="library-menu">
+                        <!-- Library Menu with Submenu - Only for Superadmin -->
+                        <div class="library-menu" id="libraryMenu" data-superadmin-only="true" style="display: none;">
                             <button onclick="toggleLibrarySubmenu()" 
                                     class="nav-item w-full flex items-center justify-between px-3 py-2 rounded-lg font-medium text-sm transition-colors duration-200
                                            {{ request()->routeIs('admin.library*') 
@@ -253,18 +256,16 @@
 
     <script>
         // Check authentication
-        const token = localStorage.getItem('admin_token');
-        const userData = JSON.parse(localStorage.getItem('user_data') || '{}');
+        const adminToken = localStorage.getItem('admin_token');
+        const adminUserData = JSON.parse(localStorage.getItem('user_data') || '{}');
+        console.log('Layout initializing with admin_type:', adminUserData.admin_type);
 
-        if (!token) {
+        if (!adminToken) {
             window.location.href = '{{ route("admin.login") }}';
         }
 
         // Set axios default header
-        axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-
-        // Display admin name
-        document.getElementById('adminName').textContent = userData.name || 'Admin';
+        axios.defaults.headers.common['Authorization'] = `Bearer ${adminToken}`;
 
         // Show message function
         function showMessage(text, type) {
@@ -282,9 +283,15 @@
 
         // Logout function
         function logout() {
-            localStorage.removeItem('admin_token');
-            localStorage.removeItem('user_data');
-            window.location.href = '{{ route("admin.login") }}';
+            console.log('Logout function called');
+            try {
+                localStorage.removeItem('admin_token');
+                localStorage.removeItem('user_data');
+                window.location.href = '{{ route("admin.login") }}';
+            } catch (error) {
+                console.error('Logout error:', error);
+                window.location.href = '{{ route("admin.login") }}';
+            }
         }
 
         // Sidebar toggle functionality
@@ -505,26 +512,59 @@
             }
         }
 
-        // Auto-expand appropriate submenu on page load
-        document.addEventListener('DOMContentLoaded', function() {
-            checkScreenSize();
-            
-            // Auto-expand submenus based on current page
-            if (window.location.pathname.includes('/admin/library/')) {
-                expandLibrarySubmenu();
+        // Initialize all layout functionality
+        function initializeAdminLayout() {
+            try {
+                console.log('Initializing admin layout...');
+                
+                // Display admin name
+                const adminNameEl = document.getElementById('adminName');
+                if (adminNameEl) {
+                    adminNameEl.textContent = adminUserData.name || 'Admin';
+                    console.log('Admin name set:', adminUserData.name);
+                }
+
+                // Initialize screen size and sidebar
+                checkScreenSize();
+                
+                // Auto-expand submenus based on current page
+                if (window.location.pathname.includes('/admin/library/')) {
+                    expandLibrarySubmenu();
+                }
+                if (window.location.pathname.includes('/admin/edit-requests/')) {
+                    expandEditRequestsSubmenu();
+                }
+                if (window.location.pathname.includes('/admin/users/')) {
+                    expandUsersSubmenu();
+                }
+                
+                console.log('Admin layout initialized successfully');
+            } catch (error) {
+                console.error('Error initializing admin layout:', error);
             }
-            if (window.location.pathname.includes('/admin/edit-requests/')) {
-                expandEditRequestsSubmenu();
-            }
-            if (window.location.pathname.includes('/admin/users/')) {
-                expandUsersSubmenu();
-            }
+        }
+
+        // Initialize on DOM ready or immediately if DOM is already loaded
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', function() {
+                initializeAdminLayout();
+                
+                // Listen for window resize
+                window.addEventListener('resize', function() {
+                    setTimeout(checkScreenSize, 100);
+                });
+            });
+        } else {
+            initializeAdminLayout();
             
             // Listen for window resize
             window.addEventListener('resize', function() {
                 setTimeout(checkScreenSize, 100);
             });
-        });
+        }
+
+        // Fallback initialization
+        setTimeout(initializeAdminLayout, 300);
     </script>
     
     @yield('scripts')

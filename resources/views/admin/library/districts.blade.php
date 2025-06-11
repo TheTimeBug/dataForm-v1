@@ -12,7 +12,7 @@
                 <p class="text-gray-600">Manage administrative districts</p>
             </div>
             <nav class="text-sm text-gray-500">
-                <a href="{{ route('admin.library') }}" class="hover:text-gray-700">Library</a>
+                <a href="{{ route('admin.library.index') }}" class="hover:text-gray-700">Library</a>
                 <span class="mx-2">›</span>
                 <span class="text-gray-800">Districts</span>
             </nav>
@@ -141,6 +141,9 @@
 </div>
 
 <script>
+    // Authorization handled at Laravel level - no JavaScript checks needed
+    console.log('Districts page loaded with Laravel-level authorization');
+
     let currentEditId = null;
     let divisionsData = [];
     let currentPage = 1;

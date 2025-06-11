@@ -77,6 +77,7 @@
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Admin Type</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Area</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created By</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                     </tr>
@@ -705,7 +706,7 @@
 
     async function loadDivisions() {
         try {
-            const response = await axios.get('/api/admin/library/divisions');
+            const response = await axios.get('/api/admin/reference/divisions');
             const divisions = response.data;
             
             const divisionSelect = document.getElementById('divisionSelect');
@@ -758,7 +759,7 @@
         if (!divisionId) return;
         
         try {
-            const response = await axios.get(`/api/admin/library/districts/${divisionId}`);
+            const response = await axios.get(`/api/admin/reference/districts/${divisionId}`);
             const districts = response.data;
             
             const districtSelect = document.getElementById('districtSelect');
@@ -817,7 +818,7 @@
         if (!districtId) return;
         
         try {
-            const response = await axios.get(`/api/admin/library/upazilas/${districtId}`);
+            const response = await axios.get(`/api/admin/reference/upazilas/${districtId}`);
             const upazilas = response.data;
             
             const upazilaSelect = document.getElementById('upazilaSelect');
@@ -909,6 +910,9 @@
                     <span class="px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(admin.status)}">
                         ${admin.status ? admin.status.charAt(0).toUpperCase() + admin.status.slice(1) : 'Active'}
                     </span>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    ${admin.created_by_name || 'System'}
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     <div class="text-sm text-gray-900">${new Date(admin.created_at).toLocaleDateString()}</div>
@@ -1112,7 +1116,7 @@
     async function loadEditDivisions() {
         try {
             console.log('Loading divisions for edit form...');
-            const response = await axios.get('/api/admin/library/divisions');
+            const response = await axios.get('/api/admin/reference/divisions');
             const divisions = response.data;
             
             const divisionSelect = document.getElementById('editDivisionSelect');
@@ -1138,7 +1142,7 @@
         
         try {
             console.log('Loading districts for division:', divisionId);
-            const response = await axios.get(`/api/admin/library/districts/${divisionId}`);
+            const response = await axios.get(`/api/admin/reference/districts/${divisionId}`);
             const districts = response.data;
             
             const districtSelect = document.getElementById('editDistrictSelect');
@@ -1167,7 +1171,7 @@
         
         try {
             console.log('Loading upazilas for district:', districtId);
-            const response = await axios.get(`/api/admin/library/upazilas/${districtId}`);
+            const response = await axios.get(`/api/admin/reference/upazilas/${districtId}`);
             const upazilas = response.data;
             
             const upazilaSelect = document.getElementById('editUpazilaSelect');
