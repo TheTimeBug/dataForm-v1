@@ -18,13 +18,42 @@ class AdminController extends Controller
     }
 
     /**
+     * Get authenticated admin user
+     */
+    public function me()
+    {
+        $admin = JWTAuth::user();
+        
+        if (!$admin->hasAdminPrivileges()) {
+            return response()->json(['error' => 'Access denied'], 403);
+        }
+
+        // Load area relationships for admin
+        $admin->load(['division', 'district', 'upazila']);
+        
+        // Add area names to the response
+        $adminData = $admin->toArray();
+        if ($admin->division) {
+            $adminData['division_name'] = $admin->division->name;
+        }
+        if ($admin->district) {
+            $adminData['district_name'] = $admin->district->name;
+        }
+        if ($admin->upazila) {
+            $adminData['upazila_name'] = $admin->upazila->name;
+        }
+
+        return response()->json($adminData);
+    }
+
+    /**
      * Add a new user
      */
     public function addUser(Request $request)
     {
         $admin = JWTAuth::user();
         
-        if ($admin->role !== 'admin') {
+        if (!$admin->hasAdminPrivileges()) {
             return response()->json(['error' => 'Access denied'], 403);
         }
 
@@ -55,7 +84,7 @@ class AdminController extends Controller
     {
         $admin = JWTAuth::user();
         
-        if ($admin->role !== 'admin') {
+        if (!$admin->hasAdminPrivileges()) {
             return response()->json(['error' => 'Access denied'], 403);
         }
 
@@ -121,7 +150,7 @@ class AdminController extends Controller
     {
         $admin = JWTAuth::user();
         
-        if ($admin->role !== 'admin') {
+        if (!$admin->hasAdminPrivileges()) {
             return response()->json(['error' => 'Access denied'], 403);
         }
 
@@ -181,7 +210,7 @@ class AdminController extends Controller
     {
         $admin = JWTAuth::user();
         
-        if ($admin->role !== 'admin') {
+        if (!$admin->hasAdminPrivileges()) {
             return response()->json(['error' => 'Access denied'], 403);
         }
 
@@ -225,7 +254,7 @@ class AdminController extends Controller
     {
         $admin = JWTAuth::user();
         
-        if ($admin->role !== 'admin') {
+        if (!$admin->hasAdminPrivileges()) {
             return response()->json(['error' => 'Access denied'], 403);
         }
 
@@ -281,7 +310,7 @@ class AdminController extends Controller
     {
         $admin = JWTAuth::user();
         
-        if ($admin->role !== 'admin') {
+        if (!$admin->hasAdminPrivileges()) {
             return response()->json(['error' => 'Access denied'], 403);
         }
 
@@ -313,7 +342,7 @@ class AdminController extends Controller
     {
         $admin = JWTAuth::user();
         
-        if ($admin->role !== 'admin') {
+        if (!$admin->hasAdminPrivileges()) {
             return response()->json(['error' => 'Access denied'], 403);
         }
 
@@ -351,7 +380,7 @@ class AdminController extends Controller
     {
         $admin = JWTAuth::user();
         
-        if ($admin->role !== 'admin') {
+        if (!$admin->hasAdminPrivileges()) {
             return response()->json(['error' => 'Access denied'], 403);
         }
 
@@ -360,12 +389,29 @@ class AdminController extends Controller
             'email' => 'required|string|email|max:255|unique:users',
             'mobile' => 'required|string|max:20',
             'password' => 'required|string|min:6',
-            'admin_type' => 'required|in:national,divisional,district,upazila',
+            'admin_type' => 'required|in:national,divisional,district,upazila,superadmin',
             'division_id' => 'nullable|integer',
             'district_id' => 'nullable|integer',
             'upazila_id' => 'nullable|integer',
             'replace_existing' => 'boolean'
         ]);
+
+        // Check if admin can create this type of admin
+        $targetAdminType = $request->get('admin_type');
+        if (!in_array($targetAdminType, $admin->getAllowedAdminTypes())) {
+            return response()->json(['error' => 'You do not have permission to create this type of admin'], 403);
+        }
+
+        // Check area restrictions for non-superadmin/national admins
+        if (!in_array($admin->admin_type, ['superadmin', 'national'])) {
+            $divisionId = $request->get('division_id');
+            $districtId = $request->get('district_id');
+            $upazilaId = $request->get('upazila_id');
+
+            if (!$admin->canAccessArea($divisionId, $districtId, $upazilaId)) {
+                return response()->json(['error' => 'You can only create admins within your area of authority'], 403);
+            }
+        }
 
         // If replace_existing is true, remove existing admins for this area
         if ($request->get('replace_existing', false)) {
@@ -389,11 +435,11 @@ class AdminController extends Controller
             'email' => $request->email,
             'mobile' => $request->mobile,
             'password' => Hash::make($request->password),
-            'role' => 'admin',
+            'role' => 'admin', // Always admin role
             'admin_type' => $request->admin_type,
         ];
 
-        if ($request->admin_type !== 'national') {
+        if (!in_array($request->admin_type, ['national', 'superadmin'])) {
             if ($request->division_id) {
                 $userData['division_id'] = $request->division_id;
             }
@@ -420,7 +466,7 @@ class AdminController extends Controller
     {
         $admin = JWTAuth::user();
         
-        if ($admin->role !== 'admin') {
+        if (!$admin->hasAdminPrivileges()) {
             return response()->json(['error' => 'Access denied'], 403);
         }
 
@@ -438,6 +484,9 @@ class AdminController extends Controller
                 'districts.name as district_name', 
                 'upazilas.name as upazila_name'
             );
+
+        // Apply hierarchical filtering based on current admin's level
+        $this->applyHierarchicalFilter($query, $admin);
 
         // Add search functionality
         if (!empty($search)) {
@@ -469,7 +518,7 @@ class AdminController extends Controller
     {
         $admin = JWTAuth::user();
         
-        if ($admin->role !== 'admin') {
+        if (!$admin->hasAdminPrivileges()) {
             return response()->json(['error' => 'Access denied'], 403);
         }
 
@@ -480,7 +529,7 @@ class AdminController extends Controller
             'email' => 'sometimes|required|string|email|max:255|unique:users,email,' . $id,
             'mobile' => 'sometimes|required|string|max:20',
             'password' => 'sometimes|required|string|min:6',
-            'admin_type' => 'sometimes|required|in:national,divisional,district,upazila',
+            'admin_type' => 'sometimes|required|in:national,divisional,district,upazila,superadmin',
             'status' => 'sometimes|required|in:active,inactive,suspended',
             'division_id' => 'nullable|integer',
             'district_id' => 'nullable|integer',
@@ -508,7 +557,7 @@ class AdminController extends Controller
     {
         $admin = JWTAuth::user();
         
-        if ($admin->role !== 'admin') {
+        if (!$admin->hasAdminPrivileges()) {
             return response()->json(['error' => 'Access denied'], 403);
         }
 
@@ -523,6 +572,91 @@ class AdminController extends Controller
 
         return response()->json([
             'message' => 'Admin user deleted successfully'
+        ]);
+    }
+
+    /**
+     * Apply hierarchical filtering to admin queries
+     */
+    private function applyHierarchicalFilter($query, $admin)
+    {
+        // Superadmin can see all admins
+        if ($admin->admin_type === 'superadmin') {
+            return;
+        }
+
+        // National admin can see all except superadmin
+        if ($admin->admin_type === 'national') {
+            $query->where('users.admin_type', '!=', 'superadmin');
+            return;
+        }
+
+        // Divisional admin can only see district and upazila in their division
+        if ($admin->admin_type === 'divisional') {
+            $query->whereIn('users.admin_type', ['district', 'upazila'])
+                  ->where('users.division_id', $admin->division_id);
+            return;
+        }
+
+        // District admin can only see upazila in their district
+        if ($admin->admin_type === 'district') {
+            $query->where('users.admin_type', 'upazila')
+                  ->where('users.district_id', $admin->district_id);
+            return;
+        }
+
+        // Upazila admin cannot see other admins
+        if ($admin->admin_type === 'upazila') {
+            $query->where('users.id', 0); // No results
+            return;
+        }
+    }
+
+    /**
+     * Get allowed admin types for current user
+     */
+    public function getAllowedAdminTypes()
+    {
+        $admin = JWTAuth::user();
+        
+        if (!$admin->hasAdminPrivileges()) {
+            return response()->json(['error' => 'Access denied'], 403);
+        }
+
+        return response()->json([
+            'allowed_types' => $admin->getAllowedAdminTypes()
+        ]);
+    }
+
+    /**
+     * Change admin password
+     */
+    public function changePassword(Request $request)
+    {
+        $admin = JWTAuth::user();
+        
+        if (!$admin->hasAdminPrivileges()) {
+            return response()->json(['error' => 'Access denied'], 403);
+        }
+        
+        $request->validate([
+            'current_password' => 'required|string',
+            'new_password' => 'required|string|min:8|confirmed',
+        ]);
+
+        // Check if current password is correct
+        if (!Hash::check($request->current_password, $admin->password)) {
+            return response()->json(['message' => 'Current password is incorrect'], 400);
+        }
+
+        // Update password
+        $admin->update([
+            'password' => Hash::make($request->new_password),
+            'password_updated_at' => now()
+        ]);
+
+        return response()->json([
+            'message' => 'Password changed successfully'
         ]);
     }
 }

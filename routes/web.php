@@ -36,6 +36,10 @@ Route::get('/admin/library/districts', [App\Http\Controllers\LibraryController::
 Route::get('/admin/library/upazilas', [App\Http\Controllers\LibraryController::class, 'upazilas'])->name('admin.library.upazilas');
 Route::get('/admin/library/mouzas', [App\Http\Controllers\LibraryController::class, 'mouzas'])->name('admin.library.mouzas');
 
+Route::get('/admin/profile', function () {
+    return view('admin.profile');
+})->name('admin.profile');
+
 // User routes
 Route::get('/user/login', function () {
     return view('user.login');

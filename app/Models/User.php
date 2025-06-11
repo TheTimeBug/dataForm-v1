@@ -94,6 +94,99 @@ class User extends Authenticatable implements JWTSubject
     }
 
     /**
+     * Check if user is superadmin
+     */
+    public function isSuperAdmin()
+    {
+        return $this->role === 'admin' && $this->admin_type === 'superadmin';
+    }
+
+    /**
+     * Check if user has admin privileges (admin or superadmin)
+     */
+    public function hasAdminPrivileges()
+    {
+        return $this->role === 'admin';
+    }
+
+    /**
+     * Get admin hierarchy level (higher number = higher authority)
+     */
+    public function getAdminLevel()
+    {
+        $levels = [
+            'upazila' => 1,
+            'district' => 2,
+            'divisional' => 3,
+            'national' => 4,
+            'superadmin' => 5
+        ];
+        return $levels[$this->admin_type] ?? 0;
+    }
+
+    /**
+     * Check if this admin can manage another admin type
+     */
+    public function canManageAdminType($targetAdminType)
+    {
+        $currentLevel = $this->getAdminLevel();
+        $targetLevel = (new self(['admin_type' => $targetAdminType]))->getAdminLevel();
+        
+        return $currentLevel > $targetLevel;
+    }
+
+    /**
+     * Get allowed admin types this user can create/manage
+     */
+    public function getAllowedAdminTypes()
+    {
+        switch ($this->admin_type) {
+            case 'superadmin':
+                return ['superadmin', 'national', 'divisional', 'district', 'upazila'];
+            case 'national':
+                return ['divisional', 'district', 'upazila'];
+            case 'divisional':
+                return ['district', 'upazila'];
+            case 'district':
+                return ['upazila'];
+            case 'upazila':
+                return [];
+            default:
+                return [];
+        }
+    }
+
+    /**
+     * Check if this admin can access a specific area
+     */
+    public function canAccessArea($divisionId = null, $districtId = null, $upazilaId = null)
+    {
+        // Superadmin and national can access all areas
+        if (in_array($this->admin_type, ['superadmin', 'national'])) {
+            return true;
+        }
+
+        // Divisional admin can only access their division
+        if ($this->admin_type === 'divisional') {
+            return $this->division_id == $divisionId;
+        }
+
+        // District admin can only access their district
+        if ($this->admin_type === 'district') {
+            return $this->division_id == $divisionId && $this->district_id == $districtId;
+        }
+
+        // Upazila admin can only access their upazila
+        if ($this->admin_type === 'upazila') {
+            return $this->division_id == $divisionId && 
+                   $this->district_id == $districtId && 
+                   $this->upazila_id == $upazilaId;
+        }
+
+        return false;
+    }
+
+    /**
      * Check if user is regular user
      */
     public function isUser()

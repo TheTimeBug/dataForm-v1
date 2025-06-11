@@ -41,6 +41,8 @@ Route::middleware('auth:api')->prefix('user')->group(function () {
 
 // Admin routes
 Route::middleware('auth:api')->prefix('admin')->group(function () {
+    Route::get('/me', [AdminController::class, 'me']);
+    Route::get('/allowed-admin-types', [AdminController::class, 'getAllowedAdminTypes']);
     Route::post('/users', [AdminController::class, 'addUser']);
     Route::get('/users', [AdminController::class, 'getUsers']);
     Route::get('/submissions', [AdminController::class, 'getSubmissions']);
@@ -54,6 +56,9 @@ Route::middleware('auth:api')->prefix('admin')->group(function () {
     Route::get('/admin-users', [AdminController::class, 'getAdminUsers']);
     Route::put('/admin-users/{id}', [AdminController::class, 'updateAdminUser']);
     Route::delete('/admin-users/{id}', [AdminController::class, 'deleteAdminUser']);
+    
+    // Admin password change
+    Route::post('/change-password', [AdminController::class, 'changePassword']);
     
     // Library routes
     Route::prefix('library')->group(function () {

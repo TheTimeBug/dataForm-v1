@@ -56,6 +56,7 @@
                     <option value="divisional">Divisional</option>
                     <option value="district">District</option>
                     <option value="upazila">Upazila</option>
+                    <option value="superadmin">Super Admin</option>
                 </select>
                 <select id="adminsPerPageSelect" 
                     class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
@@ -154,6 +155,7 @@
                         <option value="divisional">Divisional</option>
                         <option value="district">District</option>
                         <option value="upazila">Upazila</option>
+                        <option value="superadmin" id="superadminOption" style="display: none;">Super Admin</option>
                     </select>
                 </div>
 
@@ -280,6 +282,7 @@
                         <option value="divisional">Divisional</option>
                         <option value="district">District</option>
                         <option value="upazila">Upazila</option>
+                        <option value="superadmin" id="editSuperadminOption" style="display: none;">Super Admin</option>
                     </select>
                 </div>
                 
@@ -368,6 +371,7 @@
         setupAdminsFilters();
         setupAddAdminForm();
         loadDivisions();
+        checkUserRole(); // Check if current user is superadmin
     });
 
     function setupAdminsFilters() {
@@ -410,6 +414,146 @@
             // Check for existing admins in the selected area
             await checkForExistingAdmins(data);
         });
+    }
+
+    async function checkUserRole() {
+        try {
+            const [userResponse, allowedTypesResponse] = await Promise.all([
+                axios.get('/api/admin/me'),
+                axios.get('/api/admin/allowed-admin-types')
+            ]);
+            
+            const user = userResponse.data;
+            const allowedTypes = allowedTypesResponse.data.allowed_types;
+            
+            // Store current user info globally
+            window.currentAdmin = user;
+            window.allowedAdminTypes = allowedTypes;
+            
+            // Update admin type options based on allowed types
+            updateAdminTypeOptions(allowedTypes);
+            
+            // Hide add admin button for upazila admins (they can't create other admins)
+            updateAddAdminButtonVisibility(user.admin_type);
+            
+        } catch (error) {
+            console.error('Failed to check user role:', error);
+        }
+    }
+
+    function updateAdminTypeOptions(allowedTypes) {
+        // Update add admin form
+        const adminTypeSelect = document.getElementById('adminType');
+        if (adminTypeSelect) {
+            // Reset options
+            adminTypeSelect.innerHTML = '<option value="">Select Admin Type</option>';
+            
+            // Add allowed options
+            const typeLabels = {
+                'superadmin': 'Super Admin',
+                'national': 'National',
+                'divisional': 'Divisional',
+                'district': 'District',
+                'upazila': 'Upazila'
+            };
+            
+            allowedTypes.forEach(type => {
+                const option = document.createElement('option');
+                option.value = type;
+                option.textContent = typeLabels[type];
+                adminTypeSelect.appendChild(option);
+            });
+        }
+
+        // Update edit admin form
+        const editAdminTypeSelect = document.getElementById('editAdminType');
+        if (editAdminTypeSelect) {
+            // Get current selected value
+            const currentValue = editAdminTypeSelect.value;
+            
+            // Reset options
+            editAdminTypeSelect.innerHTML = '<option value="">Select Admin Type</option>';
+            
+            // Add allowed options
+            const typeLabels = {
+                'superadmin': 'Super Admin',
+                'national': 'National',
+                'divisional': 'Divisional',
+                'district': 'District',
+                'upazila': 'Upazila'
+            };
+            
+            allowedTypes.forEach(type => {
+                const option = document.createElement('option');
+                option.value = type;
+                option.textContent = typeLabels[type];
+                editAdminTypeSelect.appendChild(option);
+            });
+            
+            // Restore selected value if it's still allowed
+            if (allowedTypes.includes(currentValue)) {
+                editAdminTypeSelect.value = currentValue;
+            }
+        }
+
+        // Update filter dropdown to show only relevant types
+        const adminTypeFilter = document.getElementById('adminTypeFilter');
+        if (adminTypeFilter) {
+            const currentFilter = adminTypeFilter.value;
+            
+            // Keep "All Types" option
+            adminTypeFilter.innerHTML = '<option value="">All Types</option>';
+            
+            const typeLabels = {
+                'superadmin': 'Super Admin',
+                'national': 'National',
+                'divisional': 'Divisional',
+                'district': 'District',
+                'upazila': 'Upazila'
+            };
+            
+            // Add all admin types for filtering (they can see these types)
+            const visibleTypes = getVisibleAdminTypes(window.currentAdmin.admin_type);
+            visibleTypes.forEach(type => {
+                const option = document.createElement('option');
+                option.value = type;
+                option.textContent = typeLabels[type];
+                adminTypeFilter.appendChild(option);
+            });
+            
+            // Restore filter value
+            if (visibleTypes.includes(currentFilter)) {
+                adminTypeFilter.value = currentFilter;
+            }
+                 }
+     }
+
+    function updateAddAdminButtonVisibility(adminType) {
+        const addAdminButton = document.querySelector('button[onclick="openAddAdminModal()"]');
+        if (addAdminButton) {
+            if (adminType === 'upazila') {
+                addAdminButton.style.display = 'none';
+            } else {
+                addAdminButton.style.display = 'block';
+            }
+        }
+    }
+
+    function getVisibleAdminTypes(currentAdminType) {
+        switch (currentAdminType) {
+            case 'superadmin':
+                return ['superadmin', 'national', 'divisional', 'district', 'upazila'];
+            case 'national':
+                return ['national', 'divisional', 'district', 'upazila'];
+            case 'divisional':
+                return ['divisional', 'district', 'upazila'];
+            case 'district':
+                return ['district', 'upazila'];
+            case 'upazila':
+                return ['upazila'];
+            default:
+                return [];
+        }
     }
 
     // Modal Functions
@@ -534,8 +678,8 @@
         document.getElementById('districtSelect').required = false;
         document.getElementById('upazilaSelect').required = false;
         
-        if (adminType === 'national') {
-            // No area selection needed for national admin
+        if (adminType === 'national' || adminType === 'superadmin') {
+            // No area selection needed for national admin or superadmin
             return;
         }
         
@@ -567,13 +711,46 @@
             const divisionSelect = document.getElementById('divisionSelect');
             divisionSelect.innerHTML = '<option value="">Select Division</option>';
             
-            divisions.forEach(division => {
+            // Filter divisions based on current admin's authority
+            const filteredDivisions = filterDivisionsForCurrentAdmin(divisions);
+            
+            filteredDivisions.forEach(division => {
                 divisionSelect.innerHTML += `<option value="${division.id}">${division.name}</option>`;
             });
+            
+            // For divisional admin, auto-select their division
+            if (window.currentAdmin && window.currentAdmin.admin_type === 'divisional') {
+                divisionSelect.value = window.currentAdmin.division_id;
+                divisionSelect.disabled = true;
+                loadDistricts(); // Auto-load districts
+            }
             
         } catch (error) {
             console.error('Failed to load divisions:', error);
         }
+    }
+
+    function filterDivisionsForCurrentAdmin(divisions) {
+        if (!window.currentAdmin) return divisions;
+        
+        const adminType = window.currentAdmin.admin_type;
+        
+        // Superadmin and national can see all divisions
+        if (['superadmin', 'national'].includes(adminType)) {
+            return divisions;
+        }
+        
+        // Divisional admin can only see their division
+        if (adminType === 'divisional') {
+            return divisions.filter(div => div.id == window.currentAdmin.division_id);
+        }
+        
+        // District admin can only see their division
+        if (adminType === 'district') {
+            return divisions.filter(div => div.id == window.currentAdmin.division_id);
+        }
+        
+        return [];
     }
 
     async function loadDistricts() {
@@ -587,9 +764,19 @@
             const districtSelect = document.getElementById('districtSelect');
             districtSelect.innerHTML = '<option value="">Select District</option>';
             
-            districts.forEach(district => {
+            // Filter districts based on current admin's authority
+            const filteredDistricts = filterDistrictsForCurrentAdmin(districts);
+            
+            filteredDistricts.forEach(district => {
                 districtSelect.innerHTML += `<option value="${district.id}">${district.name}</option>`;
             });
+            
+            // For district admin, auto-select their district
+            if (window.currentAdmin && window.currentAdmin.admin_type === 'district') {
+                districtSelect.value = window.currentAdmin.district_id;
+                districtSelect.disabled = true;
+                loadUpazilas(); // Auto-load upazilas
+            }
             
             // Reset upazila selector
             document.getElementById('upazilaSelect').innerHTML = '<option value="">Select Upazila</option>';
@@ -597,6 +784,32 @@
         } catch (error) {
             console.error('Failed to load districts:', error);
         }
+    }
+
+    function filterDistrictsForCurrentAdmin(districts) {
+        if (!window.currentAdmin) return districts;
+        
+        const adminType = window.currentAdmin.admin_type;
+        
+        // Superadmin, national, and divisional can see all districts in the division
+        if (['superadmin', 'national', 'divisional'].includes(adminType)) {
+            return districts;
+        }
+        
+        // District admin can only see their district
+        if (adminType === 'district') {
+            return districts.filter(dist => dist.id == window.currentAdmin.district_id);
+        }
+        
+        return [];
+    }
+
+    function filterUpazilasForCurrentAdmin(upazilas) {
+        if (!window.currentAdmin) return upazilas;
+        
+        // All admin types can see all upazilas in their allowed districts
+        // No additional filtering needed at upazila level since district filtering already handles it
+        return upazilas;
     }
 
     async function loadUpazilas() {
@@ -610,7 +823,10 @@
             const upazilaSelect = document.getElementById('upazilaSelect');
             upazilaSelect.innerHTML = '<option value="">Select Upazila</option>';
             
-            upazilas.forEach(upazila => {
+            // Filter upazilas based on current admin's authority
+            const filteredUpazilas = filterUpazilasForCurrentAdmin(upazilas);
+            
+            filteredUpazilas.forEach(upazila => {
                 upazilaSelect.innerHTML += `<option value="${upazila.id}">${upazila.name}</option>`;
             });
             
@@ -683,7 +899,7 @@
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
                     <span class="px-2 py-1 text-xs font-medium rounded-full ${getAdminTypeColor(admin.admin_type)}">
-                        ${admin.admin_type ? admin.admin_type.charAt(0).toUpperCase() + admin.admin_type.slice(1) : 'Admin'}
+                        ${admin.admin_type === 'superadmin' ? 'Super Admin' : admin.admin_type ? admin.admin_type.charAt(0).toUpperCase() + admin.admin_type.slice(1) : 'Admin'}
                     </span>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
@@ -714,10 +930,11 @@
 
     function getAdminTypeColor(type) {
         switch(type) {
-            case 'national': return 'bg-red-100 text-red-800';
-            case 'divisional': return 'bg-purple-100 text-purple-800';
-            case 'district': return 'bg-blue-100 text-blue-800';
-            case 'upazila': return 'bg-green-100 text-green-800';
+            case 'superadmin': return 'bg-red-100 text-red-800';
+            case 'national': return 'bg-purple-100 text-purple-800';
+            case 'divisional': return 'bg-blue-100 text-blue-800';
+            case 'district': return 'bg-green-100 text-green-800';
+            case 'upazila': return 'bg-yellow-100 text-yellow-800';
             default: return 'bg-gray-100 text-gray-800';
         }
     }
@@ -732,6 +949,7 @@
     }
 
     function getAreaInfo(admin) {
+        if (admin.admin_type === 'superadmin') return 'Super Admin Level';
         if (admin.admin_type === 'national') return 'National Level';
         
         let area = '';
@@ -869,7 +1087,7 @@
         document.getElementById('editDistrictSelect').required = false;
         document.getElementById('editUpazilaSelect').required = false;
         
-        if (adminType === 'national') {
+        if (adminType === 'national' || adminType === 'superadmin') {
             return;
         }
         
@@ -983,7 +1201,7 @@
             data.admin_type = document.getElementById('editAdminType').value;
             data.status = document.getElementById('editStatus').value;
             
-            if (data.admin_type !== 'national') {
+            if (!['national', 'superadmin'].includes(data.admin_type)) {
                 data.division_id = document.getElementById('editDivisionSelect').value;
                 if (data.admin_type === 'district' || data.admin_type === 'upazila') {
                     data.district_id = document.getElementById('editDistrictSelect').value;

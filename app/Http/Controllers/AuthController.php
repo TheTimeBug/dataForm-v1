@@ -29,7 +29,7 @@ class AuthController extends Controller
         }
         
         // Debug: Check user role
-        if ($user->role !== 'admin') {
+        if (!$user->hasAdminPrivileges()) {
             return response()->json(['error' => 'Access denied. Admin only.'], 403);
         }
         
